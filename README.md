@@ -3,6 +3,7 @@
 ```
 https://github.com/KamensekD/marlin_auto_build/compare/master...KamensekD:marlin_auto_build:Debug
 https://github.com/KamensekD/marlin_auto_build/compare/master_zisismaras...KamensekD:marlin_auto_build:Debug
+https://github.com/zisismaras/marlin_auto_build/compare/master...KamensekD:marlin_auto_build:Debug
 ___
 
 # Marlin auto build
