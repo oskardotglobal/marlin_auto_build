@@ -118,7 +118,7 @@ export async function loadBuilds() {
 
   //load the build files
   for (const build of builds) {
-    let loadedBuild = require(`${env.GITHUB_WORKSPACE}!/${build}`);
+    let loadedBuild = require(`${env.GITHUB_WORKSPACE!}/${build}`);
     if (typeof loadedBuild === "function") {
       loadedBuild = await loadedBuild();
     }
