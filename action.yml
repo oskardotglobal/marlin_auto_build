@@ -23,24 +23,33 @@ runs:
     - name: Check out current repository
       uses: actions/checkout@v4
 
-    - uses: oven-sh/setup-bun@v2
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
       with:
         bun-version: latest
 
-    - uses: actions/setup-python@v5
+    - name: Set up Python
+      uses: actions/setup-python@v5
 
-    - run: pip install -U platformio
+    - name: Install Platformio CLI
+      run: pip install -U platformio
       shell: bash
 
-    - run: bunx git://github.com/oskardotglobal/marlin_auto_build.git
+    - name: Make temp directory
+      run: mkdir -p /tmp/marlin_auto_build
       shell: bash
-      working-directory: "/tmp"
+
+    - name: Run build script
+      run: bunx git://github.com/oskardotglobal/marlin_auto_build.git
+      shell: bash
+      working-directory: "/tmp/marlin_auto_build"
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_REPOSITORY: ${{ inputs.repository }}
         GITHUB_ACTOR: ${{ inputs.actor }}
 
-    - run: |
+    - name: Commit and push changes
+      run: |
         rm -rf dist
         if [ -n "$(git status --porcelain)" ]; then
           git config user.name "github-actions[bot]"

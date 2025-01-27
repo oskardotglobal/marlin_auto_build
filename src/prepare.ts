@@ -2,6 +2,7 @@ import { readdir, stat } from "fs/promises";
 import { join as pathJoin } from "path";
 import * as z from "zod";
 import chalk from "chalk";
+import { env } from "bun";
 
 const buildSchema = z.object({
   board_env: z.string().min(1),
@@ -117,7 +118,7 @@ export async function loadBuilds() {
 
   //load the build files
   for (const build of builds) {
-    let loadedBuild = require(`../${build}`);
+    let loadedBuild = require(`${env.GITHUB_WORKSPACE}!/${build}`);
     if (typeof loadedBuild === "function") {
       loadedBuild = await loadedBuild();
     }
