@@ -1,10 +1,10 @@
 name: marlin_auto_build
-description: 'Continuous automatic builds of the Marlin 3d-printer firmware'
-author: 'zisismaras'
+description: "Continuous automatic builds of the Marlin 3d-printer firmware"
+author: "zisismaras"
 
 branding:
-  icon: 'code'
-  color: 'green'
+  icon: "code"
+  color: "green"
 
 inputs:
   token:
@@ -17,21 +17,16 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v2.3.4
+    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
       with:
-        repository: ${{ inputs.repository }}
-        token: ${{ inputs.token }}
-    - uses: actions/checkout@v2.7.0
-      with:
-        repository: 'zisismaras/marlin_auto_build'
-        path: 'marlin_auto_build'
+        repository: "zisismaras/marlin_auto_build"
+        path: "marlin_auto_build"
         persist-credentials: false
-    - uses: actions/setup-node@v2
+    - uses: actions/setup-node@v4
       with:
-        node-version: '16'
-    - uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
+        node-version: "16"
+    - uses: actions/setup-python@v5
     - run: pip install -U platformio
       shell: bash
     - run: cd marlin_auto_build && npm install
@@ -47,8 +42,8 @@ runs:
     - run: |
         rm -rf marlin_auto_build
         if [ -n "$(git status --porcelain)" ]; then
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "new build"
           git push
