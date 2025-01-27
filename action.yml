@@ -9,38 +9,40 @@ branding:
 inputs:
   token:
     default: ${{ github.token }}
+    description: "The token to use"
   repository:
     default: ${{ github.repository }}
+    description: "The current repository"
   actor:
     default: ${{ github.actor }}
+    description: "The user triggering the build"
 
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
-    - uses: actions/checkout@v4
+    - name: Check out current repository
+      uses: actions/checkout@v4
+
+    - uses: oven-sh/setup-bun@v2
       with:
-        repository: "oskardotglobal/marlin_auto_build"
-        path: "marlin_auto_build"
-        persist-credentials: false
-    - uses: actions/setup-node@v4
-      with:
-        node-version: "16"
+        bun-version: latest
+
     - uses: actions/setup-python@v5
+
     - run: pip install -U platformio
       shell: bash
-    - run: cd marlin_auto_build && npm install
-      shell: bash
-    - run: cd marlin_auto_build && npm run build
-      shell: bash
-    - run: cd marlin_auto_build && node ./lib/runner.js --color
+
+    - run: |
+        mkdir ./dist
+        bunx git://github.com/oskardotglobal/marlin_auto_build.git
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_REPOSITORY: ${{ inputs.repository }}
         GITHUB_ACTOR: ${{ inputs.actor }}
+
     - run: |
-        rm -rf marlin_auto_build
+        rm -rf dist
         if [ -n "$(git status --porcelain)" ]; then
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

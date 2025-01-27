@@ -1,145 +1,107 @@
-import {readFile} from "fs/promises";
-import axios from "axios";
-import retry from "p-retry";
-const pkg = require("../package.json");
+import core from "@actions/core";
 
-const request = axios.create({
-    baseURL: "https://api.github.com/repos",
-    headers: {
-        "user-agent": `marlin_auto_build/${pkg.version}`,
-        "Accept": "application/vnd.github.v3+json",
-        "authorization": process.argv[2] === "--dev" ? "" : `Bearer ${process.env.GITHUB_TOKEN}`
-    }
-});
+import { readFile } from "fs/promises";
+import { Octokit } from "octokit";
 
-export async function getLatestStable(): Promise<string> {
-    const res = await retry(() => request.get("/MarlinFirmware/Marlin/releases/latest"), {retries: 3});
-console.log(`[@Debug]checking for latest stable at "https://api.github.com/repos/MarlinFirmware/Marlin/releases/latest"`);    
-    const release = res.data;
-    if (isMarlin2(release.tag_name)) {
-        return release.tag_name;
-    } else {
-        throw new Error("No valid stable release tag found");
-    }
+const repo = {
+  owner: "MarlinFirmware",
+  repo: "Marlin",
+};
+
+export async function getLatestStable(client: Octokit): Promise<string> {
+  const res = await client.rest.repos.getLatestRelease(repo);
+
+  core.debug("Getting latest stable Marlin release");
+
+  if (isMarlin2(res.data.tag_name)) {
+    return res.data.tag_name;
+  }
+
+  throw new Error("No valid stable release tag found");
 }
 
 function isMarlin2(version: string) {
-    try {
-        return parseInt(version.split("")[0]) >= 2;
-    } catch (_e) {
-        return false;
-    }
+  try {
+    return parseInt(version.split("")[0]) >= 2;
+  } catch (_e) {
+    return false;
+  }
 }
 
-export async function getLatestNightly(): Promise<string> {
-    const res = await retry(() => request.get("/MarlinFirmware/Marlin/commits?sha=bugfix-2.1.x&per_page=1"), {retries: 3});
-console.log(`[@Debug]checking for latest bugfix 2.1.x at "https://api.github.com/repos/MarlinFirmware/Marlin/commits?sha=bugfix-2.1.x&per_page=1"`);    
-    return res.data[0].sha;
+export async function getLatestNightly(client: Octokit): Promise<string> {
+  const res = await client.rest.repos.getBranch({
+    ...repo,
+    branch: "bugfix-2.1.x",
+  });
+
+  core.debug("Getting latest bugfix-2.1.x commit");
+
+  return res.data.commit.sha;
 }
 
 export async function createRelease(
-    version: string,
-    kind: "stable" | "nightly",
-    currentDateTime: string
-): Promise<string> {
-    //check if release already exists
-    try {
-        const uploadUrl: string = await retry(async function() {
-            const res = await request.get(`/${process.env.GITHUB_REPOSITORY}/releases/tags/${kind}-${version}`);
-            if (res.status === 404) {
-                throw new retry.AbortError(res.statusText);
-            }
-            if (res.data && res.data.upload_url) {
-                return res.data.upload_url;
-            }
-        }, {retries: 3});
-        if (uploadUrl) {
-            return uploadUrl;
-        }
-    } catch (e) {
-        //@ts-ignore
-        if (e.response.status !== 404) {
-            throw e;
-        }
-    }
+  client: Octokit,
+  version: string,
+  kind: "stable" | "nightly",
+  currentDateTime: string,
+): Promise<number> {
+  const release = await client.rest.repos.getReleaseByTag({
+    ...repo,
+    tag: `${kind}-${version}`,
+  });
 
-    //create new release
-    let body: string;
-    let name: string;
-    let tagName: string;
-    let prerelease: boolean;
-    if (kind === "stable") {
-        name = `${kind}-${version}`;
-        tagName = `${kind}-${version}`;
-        body = `https://github.com/MarlinFirmware/Marlin/releases/tag/${version}`;
-        prerelease = false;
-    } else {
-        name = `${kind}-${currentDateTime}`;
-        tagName = `${kind}-${version}`;
-        body = `https://github.com/MarlinFirmware/Marlin/tree/${version}`;
-        prerelease = true;
-    }
-    const res = await retry(function() {
-        return request.post(`/${process.env.GITHUB_REPOSITORY}/releases`, {
-            tag_name: tagName,
-            name,
-            body,
-            prerelease
-        });
-    }, {retries: 3});
-    if (res.data && res.data.upload_url) {
-        return res.data.upload_url;
-    } else {
-        throw new Error("Could not create github release");
-    }
+  if (release.data && release.data.id) {
+    return release.data.id;
+  }
+
+  const res = await client.rest.repos.createRelease({
+    ...repo,
+    tag_name: `${kind}-${version}`,
+    name:
+      kind === "stable" ? `${kind}-${version}` : `${kind}-${currentDateTime}`,
+    body: `https://github.com/${repo.owner}/${repo.repo}/${kind === "stable" ? `releases/tag/${version}` : `tree/${version}`}`,
+    prerelease: kind !== "stable",
+  });
+
+  if (res.data && res.data.id) {
+    return res.data.id;
+  }
+
+  throw new Error("Could not create github release");
 }
 
 export async function uploadAsset(
-    uploadUrl: string,
-    asset: {
-        filename: string,
-        buildPath: string,
-        action: "create" | "update",
-        assetId?: number
-    }
+  client: Octokit,
+  releaseId: number,
+  asset: {
+    filename: string;
+    buildPath: string;
+    action: "update" | "create";
+    assetId?: number;
+  },
 ): Promise<number> {
-    const file = await readFile(asset.buildPath);
-    if (asset.action === "create") {
-        const res = await retry(async function() {
-            return axios.post(`${uploadUrl.split("{")[0]}?name=${asset.filename}`, file, {
-                headers: {
-                    "user-agent": `marlin_auto_build/${pkg.version}`,
-                    "Accept": "application/vnd.github.v3+json",
-                    "authorization": `Bearer ${process.env.GITHUB_TOKEN}`,
-                    "Content-Type": "application/octet-stream"
-                }
-            });
-        }, {retries: 3});
-        if (res.data && res.data.id) {
-            return res.data.id;
-        } else {
-            throw new Error("Could not upload github asset");
-        }
-    } else {
-        //delete old asset
-        await retry(function() {
-            return request.delete(`/${process.env.GITHUB_REPOSITORY}/releases/assets/${asset.assetId}`);
-        }, {retries: 3});
-        //re-upload
-        const res = await retry(async function() {
-            return axios.post(`${uploadUrl.split("{")[0]}?name=${asset.filename}`, file, {
-                headers: {
-                    "user-agent": `marlin_auto_build/${pkg.version}`,
-                    "Accept": "application/vnd.github.v3+json",
-                    "authorization": `Bearer ${process.env.GITHUB_TOKEN}`,
-                    "Content-Type": "application/octet-stream"
-                }
-            });
-        }, {retries: 3});
-        if (res.data && res.data.id) {
-            return res.data.id;
-        } else {
-            throw new Error("Could not upload github asset");
-        }
-    }
+  const file = await readFile(asset.buildPath);
+
+  if (asset.action === "update") {
+    console.assert(asset.assetId !== undefined);
+
+    await client.rest.repos.deleteReleaseAsset({
+      ...repo,
+      asset_id: asset.assetId,
+    });
+  }
+
+  const res = await client.rest.repos.uploadReleaseAsset({
+    ...repo,
+    release_id: releaseId,
+    name: asset.filename,
+    // @ts-expect-error file is a Buffer, that's fine
+    data: file,
+  });
+
+  if (res.data && res.data.id) {
+    return res.data.id;
+  }
+
+  throw new Error("Could not upload github asset");
 }

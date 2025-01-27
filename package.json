@@ -1,39 +1,46 @@
 {
   "name": "marlin_auto_build",
   "version": "1.0.13",
-  "description": "Continuous automatic builds of the Marlin 3d-printer firmware",
-  "main": "lib/runner.js",
-  "scripts": {
-    "watch": "tsc -w",
-    "build": "tsc --build"
+  "type": "module",
+  "bin": {
+    "marlin_auto_build": "src/runner.ts",
   },
+  "description": "Continuous automatic builds of the Marlin 3d-printer firmware",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kamensekd/marlin_auto_build.git"
   },
   "author": {
     "name": "Zisis Maras",
-    "email": "contact@zisismaras.me"
+    "email": "contact@oskardotglobal.me"
   },
+  "contributors": [
+    {
+      "name": "Oskar Manhart",
+      "email": "me@oskar.global"
+    }
+  ],
   "license": "AGPL-3.0",
   "bugs": {
-    "url": "https://github.com/zisismaras/marlin_auto_build/issues"
+    "url": "https://github.com/oskardotglobal/marlin_auto_build/issues"
   },
-  "homepage": "https://github.com/zisismaras/marlin_auto_build#readme",
+  "homepage": "https://github.com/oskardotglobal/marlin_auto_build#readme",
   "dependencies": {
-    "axios": "0.24.0",
-    "chalk": "4.1.2",
-    "dayjs": "1.10.7",
-    "p-retry": "4.6.1",
-    "semver": "7.5.4",
-    "zod": "3.11.6"
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0",
+    "@actions/io": "^1.1.3",
+    "@types/bun": "^1.2.0",
+    "axios": "^1.7.9",
+    "chalk": "^4.1.2",
+    "dayjs": "^1.10.7",
+    "octokit": "^4.1.0",
+    "p-retry": "^4.6.1",
+    "semver": "^7.5.4",
+    "zod": "^3.11.6"
   },
   "devDependencies": {
-    "@types/node": "16.10.1",
-    "@types/semver": "7.5.0",
-    "@typescript-eslint/eslint-plugin": "4.28.4",
-    "@typescript-eslint/parser": "4.28.4",
-    "eslint": "7.31.0",
-    "typescript": "4.5.4"
+    "@types/node": "^16.10.1",
+    "@types/semver": "^7.5.0",
+    "typescript": "^4.5.4"
   }
 }
