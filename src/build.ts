@@ -69,8 +69,8 @@ export async function processBuild(
   );
 
   await $`
-  PATH=$PATH:~/.platformio/penv/bin platformio run -e ${build.board_env}
   cd ./current_build/
+  PATH=$PATH:~/.platformio/penv/bin platformio run -e ${build.board_env}
   `;
 
   if (
