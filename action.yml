@@ -33,7 +33,9 @@ runs:
       shell: bash
 
     - run:
-        mkdir -p $WORKSPACE && cd $WORKSPACE
+        mkdir -p $WORKSPACE
+        cd $WORKSPACE
+
         bunx git://github.com/oskardotglobal/marlin_auto_build.git
       shell: bash
       env:
