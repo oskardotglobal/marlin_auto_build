@@ -15,7 +15,7 @@ import { loadBuilds, BuildSchema } from "./prepare";
 import { processBuild } from "./build";
 import { registerQuote } from "./quote";
 
-import { $ } from "bun";
+import { $, env } from "bun";
 
 import core from "@actions/core";
 import github from "@actions/github";
@@ -29,7 +29,7 @@ if (devMode) {
   );
 }
 
-const client = github.getOctokit(core.getInput("token"));
+const client = github.getOctokit(env.GITHUB_TOKEN!);
 
 (async function main() {
   const latestStable = await getLatestStable(client);
