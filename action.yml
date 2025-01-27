@@ -32,14 +32,15 @@ runs:
     - run: pip install -U platformio
       shell: bash
 
-    - run: |
-        mkdir ./dist
+    - run:
+        mkdir -p $WORKSPACE && cd $WORKSPACE
         bunx git://github.com/oskardotglobal/marlin_auto_build.git
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_REPOSITORY: ${{ inputs.repository }}
         GITHUB_ACTOR: ${{ inputs.actor }}
+        WORKSPACE: "/tmp/marlin_auto_build"
 
     - run: |
         rm -rf dist
