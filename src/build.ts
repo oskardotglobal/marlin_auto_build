@@ -85,7 +85,7 @@ export async function processBuild(
 
   const firmware = (
     await readdir(`./current_build/.pio/build/${build.board_env}`)
-  ).find((f) => f.includes("firmware-") && f.includes(".bin"));
+  ).find((f) => f.includes("firmware-") && f.endsWith(".bin"));
   if (!firmware) {
     throw new Error("Failed to build firmware");
   }
