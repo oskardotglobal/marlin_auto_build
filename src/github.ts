@@ -45,14 +45,16 @@ export async function createRelease(
   kind: "stable" | "nightly",
   currentDateTime: string,
 ): Promise<number> {
-  const release = await client.rest.repos.getReleaseByTag({
-    ...repo,
-    tag: `${kind}-${version}`,
-  });
+  try {
+    const release = await client.rest.repos.getReleaseByTag({
+      ...repo,
+      tag: `${kind}-${version}`,
+    });
 
-  if (release.data && release.data.id) {
-    return release.data.id;
-  }
+    if (release.data && release.data.id) {
+      return release.data.id;
+    }
+  } catch (_) {}
 
   const res = await client.rest.repos.createRelease({
     ...repo,
