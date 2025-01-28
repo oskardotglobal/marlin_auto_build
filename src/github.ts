@@ -2,14 +2,19 @@ import core from "@actions/core";
 
 import { readFile } from "fs/promises";
 import { Octokit } from "octokit";
+import { env } from "bun";
 
-const repo = {
+const sourceRepo = {
   owner: "MarlinFirmware",
   repo: "Marlin",
 };
 
+const currentRepo = env.GITHUB_REPOSITORY!
+  .split("/")
+  .reduce((acc, _v, _i, array) => acc = { owner: array[0], repo: array[1] }, { owner: "", repo: "" });
+
 export async function getLatestStable(client: Octokit): Promise<string> {
-  const res = await client.rest.repos.getLatestRelease(repo);
+  const res = await client.rest.repos.getLatestRelease(sourceRepo);
 
   core.debug("Getting latest stable Marlin release");
 
@@ -30,7 +35,7 @@ function isMarlin2(version: string) {
 
 export async function getLatestNightly(client: Octokit): Promise<string> {
   const res = await client.rest.repos.getBranch({
-    ...repo,
+    ...sourceRepo,
     branch: "bugfix-2.1.x",
   });
 
@@ -47,7 +52,7 @@ export async function createRelease(
 ): Promise<number> {
   try {
     const release = await client.rest.repos.getReleaseByTag({
-      ...repo,
+      ...currentRepo,
       tag: `${kind}-${version}`,
     });
 
@@ -57,11 +62,11 @@ export async function createRelease(
   } catch (_) {}
 
   const res = await client.rest.repos.createRelease({
-    ...repo,
+    ...currentRepo,
     tag_name: `${kind}-${version}`,
     name:
       kind === "stable" ? `${kind}-${version}` : `${kind}-${currentDateTime}`,
-    body: `https://github.com/${repo.owner}/${repo.repo}/${kind === "stable" ? `releases/tag/${version}` : `tree/${version}`}`,
+    body: `https://github.com/${sourceRepo.owner}/${sourceRepo.repo}/${kind === "stable" ? `releases/tag/${version}` : `tree/${version}`}`,
     prerelease: kind !== "stable",
   });
 
@@ -88,13 +93,13 @@ export async function uploadAsset(
     console.assert(asset.assetId !== undefined);
 
     await client.rest.repos.deleteReleaseAsset({
-      ...repo,
+      ...currentRepo,
       asset_id: asset.assetId,
     });
   }
 
   const res = await client.rest.repos.uploadReleaseAsset({
-    ...repo,
+    ...currentRepo,
     release_id: releaseId,
     name: asset.filename,
     // @ts-expect-error file is a Buffer, that's fine
