@@ -92,10 +92,12 @@ export async function uploadAsset(
   if (asset.action === "update") {
     console.assert(asset.assetId !== undefined);
 
-    await client.rest.repos.deleteReleaseAsset({
-      ...currentRepo,
-      asset_id: asset.assetId,
-    });
+    try {
+      await client.rest.repos.deleteReleaseAsset({
+        ...currentRepo,
+        asset_id: asset.assetId,
+      });
+    } catch (_e) {}
   }
 
   const res = await client.rest.repos.uploadReleaseAsset({
